@@ -5,7 +5,10 @@
   "main": "index.js",
   "scripts": {
     "start": "node index.js",
-    "dev": "nodemon index.js"
+    "start:secure": "USE_SSL=true node index.js",
+    "dev": "nodemon index.js",
+    "dev:secure": "USE_SSL=true nodemon index.js",
+    "generate-cert": "node generate-cert.js"
   },
   "dependencies": {
     "cors": "^2.8.5",

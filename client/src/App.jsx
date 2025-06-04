@@ -3,6 +3,7 @@ import RoutingView from './components/RoutingView';
 import PresetView from './components/PresetView';
 import SettingsView from './components/SettingsView';
 import useWebSocket from './hooks/useWebSocket';
+import { wsConfig } from './config/websocket';
 
 function App() {
   const [routes, setRoutes] = useState({});
@@ -13,7 +14,7 @@ function App() {
     host: 'localhost',
     port: 3001
   });
-  const { ws, isConnected, sendMessage } = useWebSocket('ws://localhost:3001');
+  const { ws, isConnected, sendMessage } = useWebSocket(wsConfig.url);
 
   useEffect(() => {
     setConnected(isConnected);

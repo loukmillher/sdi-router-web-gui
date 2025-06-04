@@ -5,6 +5,7 @@ import Footer from './Footer';
 import DestinationCard from './DestinationCard';
 import ChangeSourceModal from './ChangeSourceModal';
 import { getDefaultLabel, formatDisplayNumber } from '../utils/numberUtils';
+import { validateLabel } from '../utils/validation';
 
 const RoutingView = ({ 
   connected,
@@ -119,13 +120,25 @@ const RoutingView = ({
 
   const handleSaveInputLabel = () => {
     if (editingInputLabel !== null && onLabelChange) {
-      const trimmedValue = editLabelValue.trim();
-      if (trimmedValue.length > 0 && trimmedValue.length <= 20) {
-        onLabelChange('input', editingInputLabel, trimmedValue);
+      const validation = validateLabel(editLabelValue);
+      
+      if (validation.isValid) {
+        onLabelChange('input', editingInputLabel, validation.sanitized);
+        setEditingInputLabel(null);
+        setEditLabelValue('');
+      } else {
+        // Show error but also offer to use sanitized version
+        const useSanitized = validation.sanitized && window.confirm(
+          `${validation.error}\n\nWould you like to use the cleaned version: "${validation.sanitized}"?`
+        );
+        
+        if (useSanitized && validation.sanitized) {
+          onLabelChange('input', editingInputLabel, validation.sanitized);
+          setEditingInputLabel(null);
+          setEditLabelValue('');
+        }
       }
     }
-    setEditingInputLabel(null);
-    setEditLabelValue('');
   };
 
   const handleCancelInputLabel = () => {

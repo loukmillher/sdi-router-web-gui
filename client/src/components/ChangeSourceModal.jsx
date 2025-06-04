@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { XMarkIcon, MagnifyingGlassIcon, PencilIcon, CheckIcon, XCircleIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, MagnifyingGlassIcon, PencilIcon, CheckIcon, XCircleIcon, ExclamationTriangleIcon } from '@heroicons/react/24/outline';
 import { formatDisplayNumber, getDefaultLabel } from '../utils/numberUtils';
+import { validateLabel, sanitizeLabel } from '../utils/validation';
 
 const ChangeSourceModal = ({ 
   isOpen, 
@@ -20,13 +21,23 @@ const ChangeSourceModal = ({
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedInput, setSelectedInput] = useState(currentInput);
+  const [labelValidation, setLabelValidation] = useState({ isValid: true, error: null });
 
   useEffect(() => {
     if (isOpen) {
       setSelectedInput(currentInput);
       setSearchTerm('');
+      setLabelValidation({ isValid: true, error: null });
     }
   }, [isOpen, currentInput]);
+
+  // Validate label in real-time
+  useEffect(() => {
+    if (editingInputLabel !== null && editLabelValue !== undefined) {
+      const validation = validateLabel(editLabelValue);
+      setLabelValidation(validation);
+    }
+  }, [editLabelValue, editingInputLabel]);
 
   const getInputLabel = (index) => {
     return labels.inputs?.[index]?.name || getDefaultLabel('inputs', index);
@@ -126,43 +137,62 @@ const ChangeSourceModal = ({
                         IN {formatDisplayNumber(input)}:
                       </span>
                       {editingInputLabel === input ? (
-                        <div className="flex items-center space-x-2 flex-1">
-                          <input
-                            type="text"
-                            value={editLabelValue}
-                            onChange={(e) => onEditLabelValueChange && onEditLabelValueChange(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === 'Enter') {
+                        <div className="flex-1">
+                          <div className="flex items-center space-x-2">
+                            <div className="relative flex-1">
+                              <input
+                                type="text"
+                                value={editLabelValue}
+                                onChange={(e) => {
+                                  const value = e.target.value;
+                                  // Auto-sanitize as user types
+                                  const sanitized = value.replace(/[^a-zA-Z0-9\s\-_.]/g, '');
+                                  onEditLabelValueChange && onEditLabelValueChange(sanitized);
+                                }}
+                                onKeyDown={(e) => {
+                                  if (e.key === 'Enter') {
+                                    onSaveInputLabel && onSaveInputLabel();
+                                  } else if (e.key === 'Escape') {
+                                    onCancelInputLabel && onCancelInputLabel();
+                                  }
+                                }}
+                                className={`bg-slate-700 border rounded px-2 py-1 text-sm text-white w-full focus:ring-2 ${
+                                  labelValidation.isValid 
+                                    ? 'border-slate-500 focus:ring-blue-500 focus:border-blue-500' 
+                                    : 'border-red-500 focus:ring-red-500 focus:border-red-500'
+                                }`}
+                                maxLength="20"
+                                autoFocus
+                                onClick={(e) => e.stopPropagation()}
+                              />
+                              {!labelValidation.isValid && (
+                                <ExclamationTriangleIcon className="absolute right-2 top-1/2 transform -translate-y-1/2 w-4 h-4 text-red-400" />
+                              )}
+                            </div>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 onSaveInputLabel && onSaveInputLabel();
-                              } else if (e.key === 'Escape') {
+                              }}
+                              className="p-1 text-green-400 hover:text-green-300"
+                              title="Save label"
+                            >
+                              <CheckIcon className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
                                 onCancelInputLabel && onCancelInputLabel();
-                              }
-                            }}
-                            className="bg-slate-700 border border-slate-500 rounded px-2 py-1 text-sm text-white flex-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                            maxLength="20"
-                            autoFocus
-                            onClick={(e) => e.stopPropagation()}
-                          />
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onSaveInputLabel && onSaveInputLabel();
-                            }}
-                            className="p-1 text-green-400 hover:text-green-300"
-                            title="Save label"
-                          >
-                            <CheckIcon className="w-4 h-4" />
-                          </button>
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              onCancelInputLabel && onCancelInputLabel();
-                            }}
-                            className="p-1 text-red-400 hover:text-red-300"
-                            title="Cancel editing"
-                          >
-                            <XCircleIcon className="w-4 h-4" />
-                          </button>
+                              }}
+                              className="p-1 text-red-400 hover:text-red-300"
+                              title="Cancel editing"
+                            >
+                              <XCircleIcon className="w-4 h-4" />
+                            </button>
+                          </div>
+                          {!labelValidation.isValid && labelValidation.error && (
+                            <div className="text-xs text-red-400 mt-1">{labelValidation.error}</div>
+                          )}
                         </div>
                       ) : (
                         <span className="text-sm flex-1">

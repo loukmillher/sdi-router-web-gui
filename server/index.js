@@ -1,5 +1,7 @@
 const express = require('express');
 const http = require('http');
+const https = require('https');
+const fs = require('fs');
 const WebSocket = require('ws');
 const cors = require('cors');
 const path = require('path');
@@ -8,7 +10,36 @@ const MockVideoHub = require('./mock-videohub');
 const config = require('./config');
 
 const app = express();
-const server = http.createServer(app);
+
+// Check for SSL certificates
+const useSSL = process.env.USE_SSL === 'true' || process.env.NODE_ENV === 'production';
+let server;
+let serverProtocol;
+
+if (useSSL) {
+  const certPath = path.join(__dirname, 'certs', 'server.cert');
+  const keyPath = path.join(__dirname, 'certs', 'server.key');
+  
+  if (fs.existsSync(certPath) && fs.existsSync(keyPath)) {
+    const httpsOptions = {
+      cert: fs.readFileSync(certPath),
+      key: fs.readFileSync(keyPath)
+    };
+    server = https.createServer(httpsOptions, app);
+    serverProtocol = 'https';
+    console.log('🔒 HTTPS/WSS enabled - using SSL certificates');
+  } else {
+    console.log('⚠️  SSL certificates not found. Run "npm run generate-cert" to create them.');
+    console.log('   Falling back to HTTP/WS...');
+    server = http.createServer(app);
+    serverProtocol = 'http';
+  }
+} else {
+  server = http.createServer(app);
+  serverProtocol = 'http';
+  console.log('🔓 Running in HTTP/WS mode (insecure)');
+}
+
 const wss = new WebSocket.Server({ server });
 
 // Middleware
@@ -170,6 +201,7 @@ videohub.on('labelChange', (labelType, index, label) => {
 // Start server
 const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
+  console.log(`Server running on ${serverProtocol}://localhost:${PORT}`);
+  console.log(`WebSocket available at ${serverProtocol === 'https' ? 'wss' : 'ws'}://localhost:${PORT}`);
   videohub.connect();
 });
