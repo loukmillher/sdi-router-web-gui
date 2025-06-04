@@ -95,6 +95,10 @@ class MockVideoHub {
 
     if (data.includes('VIDEO OUTPUT ROUTING:')) {
       this.handleRoutingCommand(socket, data);
+    } else if (data.includes('INPUT LABELS:')) {
+      this.handleInputLabelCommand(socket, data);
+    } else if (data.includes('OUTPUT LABELS:')) {
+      this.handleOutputLabelCommand(socket, data);
     }
   }
 
@@ -130,6 +134,70 @@ class MockVideoHub {
     }
   }
 
+  handleInputLabelCommand(socket, data) {
+    // Parse input label command
+    const lines = data.split('\n').filter(line => line.trim());
+    const labelLines = lines.slice(1); // Skip the header line
+
+    let labelsChanged = false;
+
+    labelLines.forEach(line => {
+      const match = line.match(/^(\d+)\s+(.+)$/);
+      if (match) {
+        const index = parseInt(match[1]);
+        const label = match[2].trim();
+        
+        if (index >= 0 && index <= 119 && label.length > 0 && label.length <= 20) {
+          this.labels.inputs[index] = label;
+          labelsChanged = true;
+          console.log(`Mock VideoHub: Input label changed - Input ${index}: "${label}"`);
+        }
+      }
+    });
+
+    // Send ACK
+    socket.write('ACK\n');
+
+    // Broadcast label changes to all clients with a small delay
+    if (labelsChanged) {
+      setTimeout(() => {
+        this.broadcastInputLabelUpdate();
+      }, 100);
+    }
+  }
+
+  handleOutputLabelCommand(socket, data) {
+    // Parse output label command
+    const lines = data.split('\n').filter(line => line.trim());
+    const labelLines = lines.slice(1); // Skip the header line
+
+    let labelsChanged = false;
+
+    labelLines.forEach(line => {
+      const match = line.match(/^(\d+)\s+(.+)$/);
+      if (match) {
+        const index = parseInt(match[1]);
+        const label = match[2].trim();
+        
+        if (index >= 0 && index <= 119 && label.length > 0 && label.length <= 20) {
+          this.labels.outputs[index] = label;
+          labelsChanged = true;
+          console.log(`Mock VideoHub: Output label changed - Output ${index}: "${label}"`);
+        }
+      }
+    });
+
+    // Send ACK
+    socket.write('ACK\n');
+
+    // Broadcast label changes to all clients with a small delay
+    if (labelsChanged) {
+      setTimeout(() => {
+        this.broadcastOutputLabelUpdate();
+      }, 100);
+    }
+  }
+
   broadcastRoutingUpdate() {
     const routingUpdate = 'VIDEO OUTPUT ROUTING:\n' + 
       Object.entries(this.routes).map(([output, input]) => `${output} ${input}`).join('\n') + 
@@ -140,6 +208,34 @@ class MockVideoHub {
         client.write(routingUpdate);
       } catch (err) {
         console.error('Mock VideoHub: Error broadcasting update:', err);
+      }
+    });
+  }
+
+  broadcastInputLabelUpdate() {
+    const labelUpdate = 'INPUT LABELS:\n' + 
+      Object.entries(this.labels.inputs).map(([index, label]) => `${index} ${label}`).join('\n') + 
+      '\n\n';
+
+    this.clients.forEach(client => {
+      try {
+        client.write(labelUpdate);
+      } catch (err) {
+        console.error('Mock VideoHub: Error broadcasting input label update:', err);
+      }
+    });
+  }
+
+  broadcastOutputLabelUpdate() {
+    const labelUpdate = 'OUTPUT LABELS:\n' + 
+      Object.entries(this.labels.outputs).map(([index, label]) => `${index} ${label}`).join('\n') + 
+      '\n\n';
+
+    this.clients.forEach(client => {
+      try {
+        client.write(labelUpdate);
+      } catch (err) {
+        console.error('Mock VideoHub: Error broadcasting output label update:', err);
       }
     });
   }

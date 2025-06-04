@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { XMarkIcon, MagnifyingGlassIcon } from '@heroicons/react/24/outline';
+import { XMarkIcon, MagnifyingGlassIcon, PencilIcon, CheckIcon, XCircleIcon } from '@heroicons/react/24/outline';
 import { formatDisplayNumber, getDefaultLabel } from '../utils/numberUtils';
 
 const ChangeSourceModal = ({ 
@@ -10,7 +10,13 @@ const ChangeSourceModal = ({
   currentInput,
   inputs = [],
   labels = {},
-  onApply 
+  onApply,
+  editingInputLabel,
+  editLabelValue,
+  onEditInputLabel,
+  onSaveInputLabel,
+  onCancelInputLabel,
+  onEditLabelValueChange
 }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedInput, setSelectedInput] = useState(currentInput);
@@ -101,10 +107,9 @@ const ChangeSourceModal = ({
           <div className="max-h-96">
             {filteredInputs.length > 0 ? (
               filteredInputs.map(input => (
-                <button
+                <div
                   key={input}
-                  onClick={() => setSelectedInput(input)}
-                  className={`w-full text-left p-3 border-b border-slate-600 last:border-b-0 transition-colors ${
+                  className={`w-full border-b border-slate-600 last:border-b-0 transition-colors ${
                     selectedInput === input
                       ? 'bg-blue-600 text-white'
                       : currentInput === input
@@ -112,23 +117,83 @@ const ChangeSourceModal = ({
                         : 'text-slate-200 hover:bg-slate-700'
                   }`}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-3">
+                  <div className="flex items-center justify-between p-3">
+                    <button
+                      onClick={() => setSelectedInput(input)}
+                      className="flex-1 text-left flex items-center space-x-3"
+                    >
                       <span className="font-mono text-sm">
                         IN {formatDisplayNumber(input)}:
                       </span>
-                      <span className="text-sm">
-                        {getInputLabel(input)}
-                      </span>
+                      {editingInputLabel === input ? (
+                        <div className="flex items-center space-x-2 flex-1">
+                          <input
+                            type="text"
+                            value={editLabelValue}
+                            onChange={(e) => onEditLabelValueChange && onEditLabelValueChange(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') {
+                                onSaveInputLabel && onSaveInputLabel();
+                              } else if (e.key === 'Escape') {
+                                onCancelInputLabel && onCancelInputLabel();
+                              }
+                            }}
+                            className="bg-slate-700 border border-slate-500 rounded px-2 py-1 text-sm text-white flex-1 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                            maxLength="20"
+                            autoFocus
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onSaveInputLabel && onSaveInputLabel();
+                            }}
+                            className="p-1 text-green-400 hover:text-green-300"
+                            title="Save label"
+                          >
+                            <CheckIcon className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onCancelInputLabel && onCancelInputLabel();
+                            }}
+                            className="p-1 text-red-400 hover:text-red-300"
+                            title="Cancel editing"
+                          >
+                            <XCircleIcon className="w-4 h-4" />
+                          </button>
+                        </div>
+                      ) : (
+                        <span className="text-sm flex-1">
+                          {getInputLabel(input)}
+                        </span>
+                      )}
+                    </button>
+                    
+                    <div className="flex items-center space-x-2">
+                      {editingInputLabel !== input && (
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onEditInputLabel && onEditInputLabel(input);
+                          }}
+                          className="p-1 text-slate-400 hover:text-blue-400 transition-colors"
+                          title="Edit input label"
+                        >
+                          <PencilIcon className="w-4 h-4" />
+                        </button>
+                      )}
+                      
+                      {currentInput === input && (
+                        <span className="text-xs text-green-400">Current</span>
+                      )}
+                      {selectedInput === input && selectedInput !== currentInput && (
+                        <span className="text-xs text-blue-300">Selected</span>
+                      )}
                     </div>
-                    {currentInput === input && (
-                      <span className="text-xs text-green-400">Current</span>
-                    )}
-                    {selectedInput === input && selectedInput !== currentInput && (
-                      <span className="text-xs text-blue-300">Selected</span>
-                    )}
                   </div>
-                </button>
+                </div>
               ))
             ) : (
               <div className="p-4 text-center text-slate-400">

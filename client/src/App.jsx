@@ -38,6 +38,25 @@ function App() {
         case 'route':
           setRoutes(prev => ({ ...prev, [data.output]: data.input }));
           break;
+        case 'labelChange':
+          if (data.type === 'input') {
+            setLabels(prev => ({
+              ...prev,
+              inputs: {
+                ...prev.inputs,
+                [data.index]: { name: data.label }
+              }
+            }));
+          } else if (data.type === 'output') {
+            setLabels(prev => ({
+              ...prev,
+              outputs: {
+                ...prev.outputs,
+                [data.index]: { name: data.label }
+              }
+            }));
+          }
+          break;
         default:
           break;
       }
@@ -56,6 +75,15 @@ function App() {
     sendMessage({
       type: 'preset',
       id: presetId
+    });
+  };
+
+  const handleLabelChange = (labelType, index, newLabel) => {
+    sendMessage({
+      type: 'labelChange',
+      labelType,
+      index,
+      label: newLabel
     });
   };
 
@@ -116,6 +144,7 @@ function App() {
       routes={routes}
       labels={labels}
       onRoute={handleRoute}
+      onLabelChange={handleLabelChange}
       onTabChange={handleTabChange}
       activeTab={activeTab}
       connectionInfo={connectionInfo}

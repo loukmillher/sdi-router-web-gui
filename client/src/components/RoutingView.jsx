@@ -11,6 +11,7 @@ const RoutingView = ({
   routes = {},
   labels = { inputs: {}, outputs: {} },
   onRoute,
+  onLabelChange,
   onTabChange,
   activeTab = 'routing',
   connectionInfo = { host: '', port: '', connected: false }
@@ -24,6 +25,8 @@ const RoutingView = ({
   });
   const [isSaving, setIsSaving] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
+  const [editingInputLabel, setEditingInputLabel] = useState(null);
+  const [editLabelValue, setEditLabelValue] = useState('');
 
   // Generate arrays for all 120 inputs and outputs
   const allInputs = Array.from({ length: 120 }, (_, i) => i);
@@ -107,6 +110,27 @@ const RoutingView = ({
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleEditInputLabel = (inputIndex) => {
+    setEditingInputLabel(inputIndex);
+    setEditLabelValue(getInputLabel(inputIndex));
+  };
+
+  const handleSaveInputLabel = () => {
+    if (editingInputLabel !== null && onLabelChange) {
+      const trimmedValue = editLabelValue.trim();
+      if (trimmedValue.length > 0 && trimmedValue.length <= 20) {
+        onLabelChange('input', editingInputLabel, trimmedValue);
+      }
+    }
+    setEditingInputLabel(null);
+    setEditLabelValue('');
+  };
+
+  const handleCancelInputLabel = () => {
+    setEditingInputLabel(null);
+    setEditLabelValue('');
   };
 
   return (
@@ -241,6 +265,12 @@ const RoutingView = ({
         inputs={allInputs}
         labels={labels}
         onApply={handleModalApply}
+        editingInputLabel={editingInputLabel}
+        editLabelValue={editLabelValue}
+        onEditInputLabel={handleEditInputLabel}
+        onSaveInputLabel={handleSaveInputLabel}
+        onCancelInputLabel={handleCancelInputLabel}
+        onEditLabelValueChange={setEditLabelValue}
       />
     </div>
   );

@@ -159,6 +159,7 @@ class VideoHub extends EventEmitter {
           if (match) {
             const [, index, name] = match;
             this.labels.inputs[index] = { name };
+            this.emit('labelChange', 'input', parseInt(index), name);
           }
         });
         this.emit('labels', this.labels);
@@ -170,6 +171,7 @@ class VideoHub extends EventEmitter {
           if (match) {
             const [, index, name] = match;
             this.labels.outputs[index] = { name };
+            this.emit('labelChange', 'output', parseInt(index), name);
           }
         });
         this.emit('labels', this.labels);
@@ -232,6 +234,52 @@ class VideoHub extends EventEmitter {
 
   getLabels() {
     return this.labels;
+  }
+
+  setInputLabel(index, label) {
+    if (this.connected && this.preludeReceived) {
+      index = parseInt(index);
+      
+      // Validate range and label
+      if (index < 0 || index >= config.videohub.maxInputs) {
+        console.error(`Invalid input index: ${index} (max: ${config.videohub.maxInputs-1})`);
+        return false;
+      }
+      
+      // Validate label length (VideoHub typically limits to 20 characters)
+      if (!label || label.trim().length === 0 || label.trim().length > 20) {
+        console.error(`Invalid label: must be 1-20 characters`);
+        return false;
+      }
+      
+      const trimmedLabel = label.trim();
+      this.send(`INPUT LABELS:\n${index} ${trimmedLabel}\n\n`);
+      return true;
+    }
+    return false;
+  }
+
+  setOutputLabel(index, label) {
+    if (this.connected && this.preludeReceived) {
+      index = parseInt(index);
+      
+      // Validate range and label
+      if (index < 0 || index >= config.videohub.maxOutputs) {
+        console.error(`Invalid output index: ${index} (max: ${config.videohub.maxOutputs-1})`);
+        return false;
+      }
+      
+      // Validate label length (VideoHub typically limits to 20 characters)
+      if (!label || label.trim().length === 0 || label.trim().length > 20) {
+        console.error(`Invalid label: must be 1-20 characters`);
+        return false;
+      }
+      
+      const trimmedLabel = label.trim();
+      this.send(`OUTPUT LABELS:\n${index} ${trimmedLabel}\n\n`);
+      return true;
+    }
+    return false;
   }
 
   disconnect() {

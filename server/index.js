@@ -84,6 +84,15 @@ wss.on('connection', (ws) => {
           }
           break;
           
+        case 'labelChange':
+          if (data.labelType === 'input') {
+            videohub.setInputLabel(data.index, data.label);
+          } else if (data.labelType === 'output') {
+            videohub.setOutputLabel(data.index, data.label);
+          }
+          // Label changes will be broadcast when confirmed by device
+          break;
+          
         default:
           console.warn('Unknown message type:', data.type);
       }
@@ -140,6 +149,19 @@ videohub.on('labels', (labels) => {
       client.send(JSON.stringify({
         type: 'labels',
         labels
+      }));
+    }
+  });
+});
+
+videohub.on('labelChange', (labelType, index, label) => {
+  wss.clients.forEach((client) => {
+    if (client.readyState === WebSocket.OPEN) {
+      client.send(JSON.stringify({
+        type: 'labelChange',
+        labelType,
+        index,
+        label
       }));
     }
   });
