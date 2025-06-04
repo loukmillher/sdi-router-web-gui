@@ -9,9 +9,10 @@ module.exports = {
   },
 
   // Default labels for testing when VideoHub doesn't provide them
+  // Note: Keys are internal (0-119), values display as 1-120 in UI
   defaultLabels: {
     inputs: {
-      // Cameras
+      // Cameras (display as Camera 1-16)
       0: 'Camera 1', 1: 'Camera 2', 2: 'Camera 3', 3: 'Camera 4',
       4: 'Camera 5', 5: 'Camera 6', 6: 'Camera 7', 7: 'Camera 8',
       8: 'Camera 9', 9: 'Camera 10', 10: 'Camera 11', 11: 'Camera 12',
@@ -30,7 +31,7 @@ module.exports = {
       119: 'Test Pattern'
     },
     outputs: {
-      // Monitors
+      // Monitors (display as Output 1-8 etc)
       0: 'Main Monitor', 1: 'Director Monitor', 2: 'Preview Monitor', 3: 'Program Monitor',
       4: 'Studio Monitor 1', 5: 'Studio Monitor 2', 6: 'Studio Monitor 3', 7: 'Studio Monitor 4',
       

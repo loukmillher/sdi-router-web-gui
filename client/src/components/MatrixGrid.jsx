@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { formatDisplayNumber, getDefaultLabel } from '../utils/numberUtils';
 
 const MatrixGrid = ({ routes, labels, onRoute }) => {
   const [selectedOutput, setSelectedOutput] = useState(0);
@@ -11,7 +12,7 @@ const MatrixGrid = ({ routes, labels, onRoute }) => {
 
   const getLabel = (type, index) => {
     const labelObj = labels[type]?.[index];
-    return labelObj?.name || `${type === 'inputs' ? 'Input' : 'Output'} ${index + 1}`;
+    return labelObj?.name || getDefaultLabel(type, index);
   };
 
   const filteredInputs = Array.from({ length: MAX_INPUTS }, (_, i) => i)
@@ -44,10 +45,10 @@ const MatrixGrid = ({ routes, labels, onRoute }) => {
           {Object.entries(routes).map(([output, input]) => (
             <div key={`route-${output}`} className="bg-gray-700 p-3 rounded flex justify-between items-center">
               <span className="text-sm">
-                Out {output}: {getLabel('outputs', parseInt(output))}
+                Out {formatDisplayNumber(parseInt(output))}: {getLabel('outputs', parseInt(output))}
               </span>
               <span className="text-green-400 text-sm">
-                → In {input}: {getLabel('inputs', parseInt(input))}
+                → In {formatDisplayNumber(parseInt(input))}: {getLabel('inputs', parseInt(input))}
               </span>
             </div>
           ))}
@@ -89,10 +90,10 @@ const MatrixGrid = ({ routes, labels, onRoute }) => {
               }`}
               onClick={() => setSelectedOutput(output)}
             >
-              <span className="text-sm">Output {output}</span>
+              <span className="text-sm">Output {formatDisplayNumber(output)}</span>
               <span className="text-xs text-gray-300">{getLabel('outputs', output)}</span>
               {routes[output] !== undefined && (
-                <span className="text-xs text-green-400">→ In {routes[output]}</span>
+                <span className="text-xs text-green-400">→ In {formatDisplayNumber(routes[output])}</span>
               )}
             </div>
           ))}
@@ -108,7 +109,7 @@ const MatrixGrid = ({ routes, labels, onRoute }) => {
       <div>
         <div className="flex items-center gap-4 mb-2">
           <label className="text-sm font-semibold">
-            Route Output {selectedOutput} ({getLabel('outputs', selectedOutput)}) to Input:
+            Route Output {formatDisplayNumber(selectedOutput)} ({getLabel('outputs', selectedOutput)}) to Input:
           </label>
           <input
             type="text"
@@ -129,7 +130,7 @@ const MatrixGrid = ({ routes, labels, onRoute }) => {
               }`}
               onClick={() => onRoute(selectedOutput, input)}
             >
-              <div className="text-sm font-semibold">Input {input}</div>
+              <div className="text-sm font-semibold">Input {formatDisplayNumber(input)}</div>
               <div className="text-xs text-gray-300">{getLabel('inputs', input)}</div>
               {routes[selectedOutput] === input && (
                 <div className="text-xs text-green-200 mt-1">● Active</div>
