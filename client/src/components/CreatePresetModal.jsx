@@ -20,6 +20,9 @@ const CreatePresetModal = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [showRouteBuilder, setShowRouteBuilder] = useState(false);
   const [newRoute, setNewRoute] = useState({ output: '', input: '' });
+  const [routeBuilderSearch, setRouteBuilderSearch] = useState({ output: '', input: '' });
+  const [showOutputDropdown, setShowOutputDropdown] = useState(false);
+  const [showInputDropdown, setShowInputDropdown] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -35,6 +38,9 @@ const CreatePresetModal = ({
       setSearchTerm('');
       setShowRouteBuilder(false);
       setNewRoute({ output: '', input: '' });
+      setRouteBuilderSearch({ output: '', input: '' });
+      setShowOutputDropdown(false);
+      setShowInputDropdown(false);
     }
   }, [isOpen, editingPreset]);
 
@@ -77,23 +83,56 @@ const CreatePresetModal = ({
 
   const handleAddRoute = () => {
     if (newRoute.output !== '' && newRoute.input !== '') {
-      const outputDisplay = parseInt(newRoute.output);
-      const inputDisplay = parseInt(newRoute.input);
-      
-      if (validateDisplayOutputRange(outputDisplay) && validateDisplayInputRange(inputDisplay)) {
-        const outputInternal = parseDisplayNumber(outputDisplay);
-        const inputInternal = parseDisplayNumber(inputDisplay);
-        
-        setSelectedRoutes(prev => ({
-          ...prev,
-          [outputInternal]: inputInternal
-        }));
-        setNewRoute({ output: '', input: '' });
-        setShowRouteBuilder(false);
-      } else {
-        alert('Please enter valid ranges: Outputs 1-120, Inputs 1-120');
-      }
+      setSelectedRoutes(prev => ({
+        ...prev,
+        [newRoute.output]: newRoute.input
+      }));
+      setNewRoute({ output: '', input: '' });
+      setRouteBuilderSearch({ output: '', input: '' });
+      setShowRouteBuilder(false);
     }
+  };
+
+  // Generate arrays for all 120 inputs and outputs
+  const allOutputs = Array.from({ length: 120 }, (_, i) => i);
+  const allInputs = Array.from({ length: 120 }, (_, i) => i);
+
+  // Filter outputs based on search
+  const filterOutputs = (search) => {
+    if (!search) return allOutputs;
+    
+    return allOutputs.filter(output => {
+      const label = getLabel('outputs', output).toLowerCase();
+      const displayNumber = formatDisplayNumber(output);
+      const searchLower = search.toLowerCase();
+      
+      return (
+        label.includes(searchLower) ||
+        displayNumber.includes(search) ||
+        (output + 1).toString().includes(search) ||
+        `out ${displayNumber}`.includes(searchLower) ||
+        `output ${output + 1}`.includes(searchLower)
+      );
+    });
+  };
+
+  // Filter inputs based on search
+  const filterInputs = (search) => {
+    if (!search) return allInputs;
+    
+    return allInputs.filter(input => {
+      const label = getLabel('inputs', input).toLowerCase();
+      const displayNumber = formatDisplayNumber(input);
+      const searchLower = search.toLowerCase();
+      
+      return (
+        label.includes(searchLower) ||
+        displayNumber.includes(search) ||
+        (input + 1).toString().includes(search) ||
+        `in ${displayNumber}`.includes(searchLower) ||
+        `input ${input + 1}`.includes(searchLower)
+      );
+    });
   };
 
   const filteredCurrentRoutes = Object.entries(currentRoutes).filter(([output, input]) => {
@@ -113,6 +152,21 @@ const CreatePresetModal = ({
       onClose();
     }
   };
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (!e.target.closest('.relative')) {
+        setShowOutputDropdown(false);
+        setShowInputDropdown(false);
+      }
+    };
+
+    if (showRouteBuilder) {
+      document.addEventListener('click', handleClickOutside);
+      return () => document.removeEventListener('click', handleClickOutside);
+    }
+  }, [showRouteBuilder]);
 
   if (!isOpen) return null;
 
@@ -236,34 +290,99 @@ const CreatePresetModal = ({
             {showRouteBuilder && (
               <div className="mb-4 p-4 bg-slate-700 rounded-md border border-slate-600">
                 <div className="grid grid-cols-2 gap-3 mb-3">
-                  <div>
+                  {/* Output Search */}
+                  <div className="relative">
                     <label className="block text-xs text-slate-400 mb-1">Output</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="120"
-                      value={newRoute.output}
-                      onChange={(e) => setNewRoute(prev => ({ ...prev, output: e.target.value }))}
-                      placeholder="1-120"
-                      className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm text-white"
-                    />
+                    <div className="relative">
+                      <MagnifyingGlassIcon className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 text-slate-400" />
+                      <input
+                        type="text"
+                        value={routeBuilderSearch.output}
+                        onChange={(e) => {
+                          setRouteBuilderSearch(prev => ({ ...prev, output: e.target.value }));
+                          setShowOutputDropdown(true);
+                        }}
+                        onFocus={() => setShowOutputDropdown(true)}
+                        placeholder="Search by name or number..."
+                        className="w-full bg-slate-800 border border-slate-600 rounded pl-7 pr-2 py-1 text-sm text-white placeholder-slate-400"
+                      />
+                      {newRoute.output !== '' && (
+                        <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-green-400">
+                          OUT {formatDisplayNumber(newRoute.output)}
+                        </div>
+                      )}
+                    </div>
+                    {/* Output Dropdown */}
+                    {showOutputDropdown && (
+                      <div className="absolute z-10 w-full mt-1 bg-slate-800 border border-slate-600 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                        {filterOutputs(routeBuilderSearch.output).slice(0, 10).map(output => (
+                          <button
+                            key={output}
+                            onClick={() => {
+                              setNewRoute(prev => ({ ...prev, output }));
+                              setRouteBuilderSearch(prev => ({ ...prev, output: getLabel('outputs', output) }));
+                              setShowOutputDropdown(false);
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-slate-700 transition-colors text-white"
+                          >
+                            <span className="font-mono text-blue-400">OUT {formatDisplayNumber(output)}:</span> <span className="text-slate-200">{getLabel('outputs', output)}</span>
+                          </button>
+                        ))}
+                        {filterOutputs(routeBuilderSearch.output).length === 0 && (
+                          <div className="px-3 py-2 text-sm text-slate-400">No outputs found</div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  <div>
+
+                  {/* Input Search */}
+                  <div className="relative">
                     <label className="block text-xs text-slate-400 mb-1">Input</label>
-                    <input
-                      type="number"
-                      min="1"
-                      max="120"
-                      value={newRoute.input}
-                      onChange={(e) => setNewRoute(prev => ({ ...prev, input: e.target.value }))}
-                      placeholder="1-120"
-                      className="w-full bg-slate-800 border border-slate-600 rounded px-2 py-1 text-sm text-white"
-                    />
+                    <div className="relative">
+                      <MagnifyingGlassIcon className="absolute left-2 top-1/2 transform -translate-y-1/2 w-3 h-3 text-slate-400" />
+                      <input
+                        type="text"
+                        value={routeBuilderSearch.input}
+                        onChange={(e) => {
+                          setRouteBuilderSearch(prev => ({ ...prev, input: e.target.value }));
+                          setShowInputDropdown(true);
+                        }}
+                        onFocus={() => setShowInputDropdown(true)}
+                        placeholder="Search by name or number..."
+                        className="w-full bg-slate-800 border border-slate-600 rounded pl-7 pr-2 py-1 text-sm text-white placeholder-slate-400"
+                      />
+                      {newRoute.input !== '' && (
+                        <div className="absolute right-2 top-1/2 transform -translate-y-1/2 text-xs text-green-400">
+                          IN {formatDisplayNumber(newRoute.input)}
+                        </div>
+                      )}
+                    </div>
+                    {/* Input Dropdown */}
+                    {showInputDropdown && (
+                      <div className="absolute z-10 w-full mt-1 bg-slate-800 border border-slate-600 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                        {filterInputs(routeBuilderSearch.input).slice(0, 10).map(input => (
+                          <button
+                            key={input}
+                            onClick={() => {
+                              setNewRoute(prev => ({ ...prev, input }));
+                              setRouteBuilderSearch(prev => ({ ...prev, input: getLabel('inputs', input) }));
+                              setShowInputDropdown(false);
+                            }}
+                            className="w-full text-left px-3 py-2 text-sm hover:bg-slate-700 transition-colors text-white"
+                          >
+                            <span className="font-mono text-green-400">IN {formatDisplayNumber(input)}:</span> <span className="text-slate-200">{getLabel('inputs', input)}</span>
+                          </button>
+                        ))}
+                        {filterInputs(routeBuilderSearch.input).length === 0 && (
+                          <div className="px-3 py-2 text-sm text-slate-400">No inputs found</div>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
                 <button
                   onClick={handleAddRoute}
-                  disabled={!newRoute.output || !newRoute.input}
+                  disabled={newRoute.output === '' || newRoute.input === ''}
                   className="w-full py-2 px-3 bg-green-600 hover:bg-green-700 disabled:bg-gray-500 text-white rounded text-sm"
                 >
                   Add Route
