@@ -15,7 +15,8 @@ const Header = ({ connected, activeTab, onTabChange }) => {
 
   const tabs = [
     { id: 'presets', label: 'PRESETS' },
-    { id: 'routing', label: 'ROUTING' }
+    { id: 'routing', label: 'ROUTING' },
+    { id: 'settings', label: 'SETTINGS' }
   ];
 
   return (

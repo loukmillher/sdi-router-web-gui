@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import RoutingView from './components/RoutingView';
 import PresetView from './components/PresetView';
+import SettingsView from './components/SettingsView';
 import useWebSocket from './hooks/useWebSocket';
 
 function App() {
@@ -8,6 +9,10 @@ function App() {
   const [labels, setLabels] = useState({ inputs: {}, outputs: {} });
   const [connected, setConnected] = useState(false);
   const [activeTab, setActiveTab] = useState('routing');
+  const [connectionSettings, setConnectionSettings] = useState({
+    host: 'localhost',
+    port: 3001
+  });
   const { ws, isConnected, sendMessage } = useWebSocket('ws://localhost:3001');
 
   useEffect(() => {
@@ -58,9 +63,23 @@ function App() {
     setActiveTab(tab);
   };
 
+  const handleConnectionChange = async (newSettings) => {
+    if (newSettings) {
+      // Update connection settings
+      setConnectionSettings(newSettings);
+      console.log('Connection settings updated:', newSettings);
+      
+      // In a real implementation, this would trigger a reconnection
+      // For now, we'll just update the settings
+    } else {
+      // Handle disconnect
+      console.log('Disconnecting from VideoHub');
+    }
+  };
+
   const connectionInfo = {
-    host: 'localhost', // TODO: Get from config
-    port: '9990',
+    host: connectionSettings.host,
+    port: connectionSettings.port.toString(),
     connected: connected && isConnected
   };
 
@@ -75,6 +94,18 @@ function App() {
         activeTab={activeTab}
         connectionInfo={connectionInfo}
         onPresetSelect={handlePreset}
+      />
+    );
+  }
+
+  if (activeTab === 'settings') {
+    return (
+      <SettingsView
+        connected={connected && isConnected}
+        onTabChange={handleTabChange}
+        activeTab={activeTab}
+        connectionInfo={connectionInfo}
+        onConnectionChange={handleConnectionChange}
       />
     );
   }
