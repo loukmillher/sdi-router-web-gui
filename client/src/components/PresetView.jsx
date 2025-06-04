@@ -24,59 +24,9 @@ const PresetView = ({
   });
   const [searchTerm, setSearchTerm] = useState('');
 
-  // Initialize with default presets from config
+  // Initialize with empty presets array - no defaults
   useEffect(() => {
-    const defaultPresets = [
-      {
-        id: '1',
-        name: 'Studio A Setup',
-        routes: {
-          0: 0,   // Monitor 1 -> Camera 1
-          1: 1,   // Monitor 2 -> Camera 2
-          2: 2,   // Monitor 3 -> Camera 3
-          3: 3,   // Monitor 4 -> Camera 4
-          10: 10, // Recording 1 -> Input 11
-          11: 11, // Recording 2 -> Input 12
-          20: 20, // Streaming 1 -> Input 21
-          21: 21  // Streaming 2 -> Input 22
-        },
-        createdAt: '2024-01-01T00:00:00Z'
-      },
-      {
-        id: '2',
-        name: 'Studio B Setup',
-        routes: {
-          0: 4,   // Monitor 1 -> Camera 5
-          1: 5,   // Monitor 2 -> Camera 6
-          2: 6,   // Monitor 3 -> Camera 7
-          3: 7,   // Monitor 4 -> Camera 8
-          10: 14, // Recording 1 -> Input 15
-          11: 15, // Recording 2 -> Input 16
-          20: 24, // Streaming 1 -> Input 25
-          21: 25  // Streaming 2 -> Input 26
-        },
-        createdAt: '2024-01-01T00:00:00Z'
-      },
-      {
-        id: '3',
-        name: 'Multi-Camera Event',
-        routes: {
-          0: 0,   // Main Monitor -> Camera 1
-          1: 1,   // Director Monitor -> Camera 2
-          2: 8,   // Wide Shot -> Camera 9
-          3: 9,   // Close Up -> Camera 10
-          4: 16,  // Overhead -> Camera 17
-          5: 17,  // Audience -> Camera 18
-          10: 0,  // Recording Main -> Camera 1
-          11: 8,  // Recording Wide -> Camera 9
-          20: 0,  // Stream Main -> Camera 1
-          30: 50, // Backup Output -> Input 51
-          31: 51  // Emergency Feed -> Input 52
-        },
-        createdAt: '2024-01-01T00:00:00Z'
-      }
-    ];
-    setPresets(defaultPresets);
+    setPresets([]);
   }, []);
 
   const handleCreatePreset = () => {

@@ -83,6 +83,12 @@ const CreatePresetModal = ({
 
   const handleAddRoute = () => {
     if (newRoute.output !== '' && newRoute.input !== '') {
+      // Check if output is already routed
+      if (selectedRoutes.hasOwnProperty(newRoute.output.toString())) {
+        alert(`Output ${formatDisplayNumber(newRoute.output)} is already routed. Please remove the existing route first.`);
+        return;
+      }
+      
       setSelectedRoutes(prev => ({
         ...prev,
         [newRoute.output]: newRoute.input
@@ -315,19 +321,41 @@ const CreatePresetModal = ({
                     {/* Output Dropdown */}
                     {showOutputDropdown && (
                       <div className="absolute z-10 w-full mt-1 bg-slate-800 border border-slate-600 rounded-md shadow-lg max-h-48 overflow-y-auto">
-                        {filterOutputs(routeBuilderSearch.output).slice(0, 10).map(output => (
-                          <button
-                            key={output}
-                            onClick={() => {
-                              setNewRoute(prev => ({ ...prev, output }));
-                              setRouteBuilderSearch(prev => ({ ...prev, output: getLabel('outputs', output) }));
-                              setShowOutputDropdown(false);
-                            }}
-                            className="w-full text-left px-3 py-2 text-sm hover:bg-slate-700 transition-colors text-white"
-                          >
-                            <span className="font-mono text-blue-400">OUT {formatDisplayNumber(output)}:</span> <span className="text-slate-200">{getLabel('outputs', output)}</span>
-                          </button>
-                        ))}
+                        {filterOutputs(routeBuilderSearch.output).slice(0, 10).map(output => {
+                          const isAlreadyRouted = selectedRoutes.hasOwnProperty(output.toString());
+                          return (
+                            <button
+                              key={output}
+                              onClick={() => {
+                                if (!isAlreadyRouted) {
+                                  setNewRoute(prev => ({ ...prev, output }));
+                                  setRouteBuilderSearch(prev => ({ ...prev, output: getLabel('outputs', output) }));
+                                  setShowOutputDropdown(false);
+                                }
+                              }}
+                              disabled={isAlreadyRouted}
+                              className={`w-full text-left px-3 py-2 text-sm transition-colors ${
+                                isAlreadyRouted 
+                                  ? 'bg-slate-900 cursor-not-allowed opacity-50' 
+                                  : 'hover:bg-slate-700 text-white'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between">
+                                <div>
+                                  <span className={`font-mono ${isAlreadyRouted ? 'text-slate-500' : 'text-blue-400'}`}>
+                                    OUT {formatDisplayNumber(output)}:
+                                  </span>{' '}
+                                  <span className={isAlreadyRouted ? 'text-slate-500' : 'text-slate-200'}>
+                                    {getLabel('outputs', output)}
+                                  </span>
+                                </div>
+                                {isAlreadyRouted && (
+                                  <span className="text-xs text-yellow-500">Already routed</span>
+                                )}
+                              </div>
+                            </button>
+                          );
+                        })}
                         {filterOutputs(routeBuilderSearch.output).length === 0 && (
                           <div className="px-3 py-2 text-sm text-slate-400">No outputs found</div>
                         )}
