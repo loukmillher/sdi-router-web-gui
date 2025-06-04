@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
+import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import Header from './Header';
 import Footer from './Footer';
 import DestinationCard from './DestinationCard';
 import ChangeSourceModal from './ChangeSourceModal';
-import { getDefaultLabel } from '../utils/numberUtils';
+import { getDefaultLabel, formatDisplayNumber } from '../utils/numberUtils';
 
 const RoutingView = ({ 
   connected,
@@ -22,6 +23,7 @@ const RoutingView = ({
     currentInput: null
   });
   const [isSaving, setIsSaving] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Generate arrays for all 120 inputs and outputs
   const allInputs = Array.from({ length: 120 }, (_, i) => i);
@@ -34,6 +36,23 @@ const RoutingView = ({
   const getInputLabel = (index) => {
     return labels.inputs?.[index]?.name || getDefaultLabel('inputs', index);
   };
+
+  // Filter outputs based on search term
+  const filteredOutputs = allOutputs.filter(output => {
+    if (!searchTerm) return true;
+    
+    const outputLabel = getOutputLabel(output).toLowerCase();
+    const displayNumber = formatDisplayNumber(output);
+    const searchLower = searchTerm.toLowerCase();
+    
+    return (
+      outputLabel.includes(searchLower) ||
+      displayNumber.includes(searchTerm) ||
+      (output + 1).toString().includes(searchTerm) ||
+      `out ${displayNumber}`.includes(searchLower) ||
+      `output ${output + 1}`.includes(searchLower)
+    );
+  });
 
   const handleChangeSource = (outputIndex) => {
     if (lockedOutputs.has(outputIndex)) return;
@@ -103,17 +122,56 @@ const RoutingView = ({
       <main className="flex-1 overflow-y-auto">
         <div className="max-w-7xl mx-auto py-6">
           <div className="px-4 sm:px-6 lg:px-8">
-            {/* Title */}
+            {/* Title and Search */}
             <div className="mb-6">
-              <h2 className="text-2xl font-bold text-slate-200">Destinations View</h2>
-              <p className="text-sm text-slate-400 mt-1">
-                Manage routing for all 120 outputs. Click "Change Source" to route inputs to outputs.
-              </p>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 mb-4">
+                <div>
+                  <h2 className="text-2xl font-bold text-slate-200">Destinations View</h2>
+                  <p className="text-sm text-slate-400 mt-1">
+                    Manage routing for all 120 outputs. Click "Change Source" to route inputs to outputs.
+                  </p>
+                </div>
+                
+                {/* Search Bar */}
+                <div className="relative w-full md:w-80">
+                  <MagnifyingGlassIcon className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search outputs by name or number..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="w-full bg-slate-700 border border-slate-600 rounded-md pl-10 pr-4 py-2 text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  {searchTerm && (
+                    <button
+                      onClick={() => setSearchTerm('')}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-slate-200"
+                    >
+                      ×
+                    </button>
+                  )}
+                </div>
+              </div>
+              
+              {/* Search Results Info */}
+              {searchTerm && (
+                <div className="mb-4 p-3 bg-blue-900/20 border border-blue-700/50 rounded-md">
+                  <p className="text-sm text-blue-300">
+                    {filteredOutputs.length === 0 ? (
+                      <>No outputs found matching "<span className="font-semibold">{searchTerm}</span>"</>
+                    ) : filteredOutputs.length === allOutputs.length ? (
+                      <>Showing all {allOutputs.length} outputs</>
+                    ) : (
+                      <>Showing {filteredOutputs.length} of {allOutputs.length} outputs matching "<span className="font-semibold">{searchTerm}</span>"</>
+                    )}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Destination Cards Grid */}
             <div className="space-y-2">
-              {allOutputs.map(outputIndex => (
+              {filteredOutputs.map(outputIndex => (
                 <DestinationCard
                   key={outputIndex}
                   outputIndex={outputIndex}
@@ -127,8 +185,26 @@ const RoutingView = ({
               ))}
             </div>
 
-            {/* Empty State */}
-            {Object.keys(routes).length === 0 && (
+            {/* Empty States */}
+            {filteredOutputs.length === 0 && searchTerm && (
+              <div className="text-center py-12">
+                <div className="text-slate-400 mb-4">
+                  <MagnifyingGlassIcon className="w-12 h-12 mx-auto mb-4" />
+                </div>
+                <h3 className="text-lg font-medium text-slate-300 mb-2">No Outputs Found</h3>
+                <p className="text-slate-400 mb-4">
+                  No outputs match your search for "<span className="font-semibold">{searchTerm}</span>"
+                </p>
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md font-semibold transition-colors"
+                >
+                  Clear Search
+                </button>
+              </div>
+            )}
+
+            {filteredOutputs.length > 0 && Object.keys(routes).length === 0 && !searchTerm && (
               <div className="text-center py-12">
                 <div className="text-slate-400 mb-4">
                   <svg className="w-12 h-12 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
