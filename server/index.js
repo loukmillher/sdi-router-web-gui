@@ -42,16 +42,55 @@ if (useSSL) {
 
 const wss = new WebSocket.Server({ server });
 
+// Initialize VideoHub instance
+const videohub = new VideoHub(config.videohub.host, config.videohub.port);
+
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// API Endpoints for VideoHub connection management
+app.post('/api/connect', (req, res) => {
+  const { host, port } = req.body;
+  
+  if (!host || !port) {
+    return res.status(400).json({ error: 'Host and port are required' });
+  }
+  
+  // Disconnect if already connected
+  if (videohub.connected) {
+    videohub.disconnect();
+  }
+  
+  // Update connection settings
+  videohub.updateConnectionSettings(host, port);
+  
+  // Connect with auto-reconnect enabled
+  videohub.connectWithAutoReconnect();
+  
+  res.json({ message: 'Connection initiated', host, port });
+});
+
+app.post('/api/disconnect', (req, res) => {
+  videohub.disconnect();
+  res.json({ message: 'Disconnected from VideoHub' });
+});
+
+app.get('/api/connection-status', (req, res) => {
+  res.json({
+    connected: videohub.connected,
+    host: videohub.host,
+    port: videohub.port,
+    autoReconnect: videohub.autoReconnect
+  });
+});
 
 // Serve static files in production
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '../client/build')));
 }
 
-// Initialize VideoHub connection or mock server for demo mode
+// Initialize mock server for demo mode
 let mockServer = null;
 if (process.env.DEMO_MODE === 'true') {
   console.log('🎭 Starting in DEMO mode - using mock VideoHub');
@@ -61,10 +100,9 @@ if (process.env.DEMO_MODE === 'true') {
   // Wait a moment for mock server to start, then connect
   setTimeout(() => {
     console.log('Connecting to mock VideoHub...');
+    videohub.connectWithAutoReconnect();
   }, 1000);
 }
-
-const videohub = new VideoHub(config.videohub.host, config.videohub.port);
 
 // WebSocket connection handling
 wss.on('connection', (ws) => {
@@ -203,5 +241,5 @@ const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`Server running on ${serverProtocol}://localhost:${PORT}`);
   console.log(`WebSocket available at ${serverProtocol === 'https' ? 'wss' : 'ws'}://localhost:${PORT}`);
-  videohub.connect();
+  console.log('VideoHub connection not established. Use the setup page to connect.');
 });

@@ -15,6 +15,7 @@ class VideoHub extends EventEmitter {
     this.preludeReceived = false;
     this.reconnectAttempts = 0;
     this.maxReconnectAttempts = 10;
+    this.autoReconnect = false; // Disable auto-reconnect by default
   }
 
   connect() {
@@ -47,17 +48,17 @@ class VideoHub extends EventEmitter {
       this.preludeReceived = false;
       this.emit('disconnected');
       
-      // Attempt to reconnect with exponential backoff
-      if (this.reconnectAttempts < this.maxReconnectAttempts) {
+      // Attempt to reconnect with exponential backoff only if autoReconnect is enabled
+      if (this.autoReconnect && this.reconnectAttempts < this.maxReconnectAttempts) {
         const delay = Math.min(5000 * Math.pow(1.5, this.reconnectAttempts), 30000);
         this.reconnectAttempts++;
         console.log(`Reconnecting in ${delay/1000} seconds... (attempt ${this.reconnectAttempts})`);
         setTimeout(() => {
-          if (!this.connected) {
+          if (!this.connected && this.autoReconnect) {
             this.connect();
           }
         }, delay);
-      } else {
+      } else if (this.autoReconnect) {
         console.error('Max reconnection attempts reached');
         this.emit('max_reconnect_attempts');
       }
@@ -283,11 +284,23 @@ class VideoHub extends EventEmitter {
   }
 
   disconnect() {
+    this.autoReconnect = false; // Disable auto-reconnect when manually disconnecting
     if (this.client) {
       this.client.destroy();
       this.client = null;
       this.connected = false;
     }
+  }
+
+  updateConnectionSettings(host, port) {
+    this.host = host;
+    this.port = port;
+  }
+
+  connectWithAutoReconnect() {
+    this.autoReconnect = true;
+    this.reconnectAttempts = 0;
+    this.connect();
   }
 }
 

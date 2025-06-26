@@ -94,15 +94,50 @@ function App() {
 
   const handleConnectionChange = async (newSettings) => {
     if (newSettings) {
-      // Update connection settings
-      setConnectionSettings(newSettings);
-      console.log('Connection settings updated:', newSettings);
-      
-      // In a real implementation, this would trigger a reconnection
-      // For now, we'll just update the settings
+      try {
+        // Update connection settings
+        setConnectionSettings(newSettings);
+        console.log('Connection settings updated:', newSettings);
+        
+        // Call the connect API endpoint
+        const response = await fetch('/api/connect', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            host: newSettings.host,
+            port: newSettings.port
+          })
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to connect to VideoHub');
+        }
+        
+        const data = await response.json();
+        console.log('Connection initiated:', data);
+      } catch (error) {
+        console.error('Connection error:', error);
+        throw error;
+      }
     } else {
       // Handle disconnect
       console.log('Disconnecting from VideoHub');
+      try {
+        const response = await fetch('/api/disconnect', {
+          method: 'POST'
+        });
+        
+        if (!response.ok) {
+          throw new Error('Failed to disconnect from VideoHub');
+        }
+        
+        const data = await response.json();
+        console.log('Disconnected:', data);
+      } catch (error) {
+        console.error('Disconnect error:', error);
+      }
     }
   };
 
