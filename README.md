@@ -179,3 +179,13 @@ VideoHub (TCP:9990) ↔ Node.js Server ↔ WebSocket ↔ React Client
 - **Demo Mode**: Use `./start-demo.sh` to test UI without hardware
 - **Logs**: Check browser console and server terminal for error messages
 - **Documentation**: See `Documentation/` folder for detailed guides
+
+## Attribution
+
+This project uses the **Blackmagic Router Control Protocol**, which is the official protocol for controlling Blackmagic Design VideoHub routers. Blackmagic Design and VideoHub are trademarks of Blackmagic Design Pty Ltd. This project is not affiliated with or endorsed by Blackmagic Design.
+
+For protocol details, see the official Blackmagic documentation and the included `Blackmagic Router Control Protocol.pdf`.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE). See the LICENSE file for details.
