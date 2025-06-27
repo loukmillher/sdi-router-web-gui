@@ -15,13 +15,6 @@ A professional web-based control interface for Blackmagic Smart Videohub SDI rou
 - **🔄 Auto-reconnection**: Robust connection handling with exponential backoff
 - **🎭 Demo Mode**: Full UI testing without VideoHub hardware
 
-## Requirements
-
-- **Node.js 14+**: Required for both client and server
-- **npm**: For dependency management  
-- **Network Access**: For VideoHub communication (port 9990)
-- **Blackmagic Smart Videohub**: Any model supporting Router Control Protocol
-
 ## Quick Start
 
 ### Option 1: Demo Mode (Recommended)
@@ -39,6 +32,13 @@ Then open: **http://localhost:3000**
 # Install, build, and start in demo mode
 ./start-demo.sh
 ```
+
+## Requirements
+
+- **Node.js 14+**: Required for both client and server
+- **npm**: For dependency management  
+- **Network Access**: For VideoHub communication (port 9990)
+- **Blackmagic Smart Videohub**: Any model supporting Router Control Protocol
 
 ## Setup Options
 
@@ -184,7 +184,7 @@ VideoHub (TCP:9990) ↔ Node.js Server ↔ WebSocket ↔ React Client
 
 This project uses the **Blackmagic Router Control Protocol**, which is the official protocol for controlling Blackmagic Design VideoHub routers. Blackmagic Design and VideoHub are trademarks of Blackmagic Design Pty Ltd. This project is not affiliated with or endorsed by Blackmagic Design.
 
-For protocol details, see the official Blackmagic documentation and the included `Blackmagic Router Control Protocol.pdf`.
+For protocol details, see the official Blackmagic documentation.
 
 ## License
 
