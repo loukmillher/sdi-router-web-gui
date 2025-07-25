@@ -73,10 +73,9 @@ function App() {
   };
 
   const handlePreset = (presetId) => {
-    sendMessage({
-      type: 'preset',
-      id: presetId
-    });
+    // Presets are now handled directly by the PresetView component via API
+    // This function is kept for compatibility but may not be needed
+    console.log('Preset applied:', presetId);
   };
 
   const handleLabelChange = (labelType, index, newLabel) => {

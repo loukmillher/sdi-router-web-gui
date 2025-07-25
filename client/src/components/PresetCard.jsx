@@ -4,7 +4,10 @@ import {
   PencilIcon, 
   TrashIcon, 
   DocumentDuplicateIcon,
-  ClockIcon
+  ClockIcon,
+  ArrowDownTrayIcon,
+  TagIcon,
+  FolderIcon
 } from '@heroicons/react/24/outline';
 
 const PresetCard = ({ 
@@ -13,6 +16,7 @@ const PresetCard = ({
   onEdit,
   onDelete,
   onDuplicate,
+  onExport,
   isApplying = false,
   isActive = false
 }) => {
@@ -35,6 +39,15 @@ const PresetCard = ({
       return `${preview}, +${routeEntries.length - 3} more`;
     }
     return preview;
+  };
+
+  const formatDate = (dateString) => {
+    if (!dateString) return null;
+    const date = new Date(dateString);
+    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], { 
+      hour: '2-digit', 
+      minute: '2-digit' 
+    });
   };
 
   const handleApply = () => {
@@ -66,12 +79,20 @@ const PresetCard = ({
           <h3 className="text-lg font-semibold text-slate-200 mb-1">
             {preset.name}
           </h3>
-          <div className="flex items-center space-x-3 text-sm text-slate-400">
-            <span>{formatRouteCount(preset.routes)}</span>
-            {preset.lastApplied && (
+          <div className="text-sm text-slate-400 space-y-1">
+            <div className="flex items-center space-x-3">
+              <span>{formatRouteCount(preset.routing)}</span>
+              {preset.category && (
+                <div className="flex items-center space-x-1">
+                  <FolderIcon className="w-3 h-3" />
+                  <span>{preset.category}</span>
+                </div>
+              )}
+            </div>
+            {preset.updatedAt && (
               <div className="flex items-center space-x-1">
                 <ClockIcon className="w-3 h-3" />
-                <span>Last applied: {new Date(preset.lastApplied).toLocaleString()}</span>
+                <span>Updated: {formatDate(preset.updatedAt)}</span>
               </div>
             )}
           </div>
@@ -85,10 +106,36 @@ const PresetCard = ({
         )}
       </div>
 
+      {/* Description */}
+      {preset.description && (
+        <div className="mb-3">
+          <p className="text-sm text-slate-300 italic">
+            {preset.description}
+          </p>
+        </div>
+      )}
+
+      {/* Tags */}
+      {preset.tags && preset.tags.length > 0 && (
+        <div className="mb-3 flex items-center space-x-2">
+          <TagIcon className="w-3 h-3 text-slate-400" />
+          <div className="flex flex-wrap gap-1">
+            {preset.tags.map((tag, index) => (
+              <span
+                key={index}
+                className="text-xs bg-slate-600 text-slate-300 px-2 py-1 rounded"
+              >
+                {tag}
+              </span>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Route Preview */}
       <div className="mb-4">
         <p className="text-sm text-slate-300 bg-slate-800 rounded p-2 font-mono">
-          {getRoutePreview(preset.routes)}
+          {getRoutePreview(preset.routing)}
         </p>
       </div>
 
@@ -114,6 +161,16 @@ const PresetCard = ({
 
         {/* Secondary Actions */}
         <div className="flex items-center space-x-2">
+          {onExport && (
+            <button
+              onClick={() => onExport(preset.id)}
+              className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-600 rounded-md transition-colors"
+              title="Export Preset"
+            >
+              <ArrowDownTrayIcon className="w-4 h-4" />
+            </button>
+          )}
+          
           <button
             onClick={() => onDuplicate(preset)}
             className="p-2 text-slate-400 hover:text-slate-200 hover:bg-slate-600 rounded-md transition-colors"

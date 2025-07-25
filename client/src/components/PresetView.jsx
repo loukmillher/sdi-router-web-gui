@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { PlusIcon, FolderIcon } from '@heroicons/react/24/outline';
+import { PlusIcon, FolderIcon, ArrowDownTrayIcon, ArrowUpTrayIcon } from '@heroicons/react/24/outline';
 import Header from './Header';
 import Footer from './Footer';
 import PresetCard from './PresetCard';
 import CreatePresetModal from './CreatePresetModal';
+import presetApi from '../services/presetApi';
 
 const PresetView = ({ 
   connected,
@@ -23,11 +24,42 @@ const PresetView = ({
     editingPreset: null
   });
   const [searchTerm, setSearchTerm] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [categories, setCategories] = useState([]);
+  const [selectedCategory, setSelectedCategory] = useState('');
 
-  // Initialize with empty presets array - no defaults
+  // Fetch presets from API
   useEffect(() => {
-    setPresets([]);
+    fetchPresets();
+    fetchCategories();
   }, []);
+
+  const fetchPresets = async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const data = await presetApi.fetchPresets({ 
+        limit: 100,
+        category: selectedCategory || undefined 
+      });
+      setPresets(data.presets);
+    } catch (err) {
+      setError('Failed to load presets');
+      console.error('Error fetching presets:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const data = await presetApi.getCategories();
+      setCategories(data.categories);
+    } catch (err) {
+      console.error('Error fetching categories:', err);
+    }
+  };
 
   const handleCreatePreset = () => {
     setModalState({
@@ -43,58 +75,75 @@ const PresetView = ({
     });
   };
 
-  const handleDuplicatePreset = (preset) => {
-    const duplicatedPreset = {
-      ...preset,
-      id: Date.now().toString(),
-      name: `${preset.name} (Copy)`,
-      createdAt: new Date().toISOString(),
-      lastModified: new Date().toISOString()
-    };
-    setPresets(prev => [...prev, duplicatedPreset]);
-  };
-
-  const handleDeletePreset = (presetId) => {
-    setPresets(prev => prev.filter(p => p.id !== presetId));
-    if (activePresetId === presetId) {
-      setActivePresetId(null);
+  const handleDuplicatePreset = async (preset) => {
+    try {
+      const duplicatedData = {
+        name: `${preset.name} (Copy)`,
+        description: preset.description,
+        routing: preset.routing,
+        category: preset.category,
+        tags: preset.tags
+      };
+      await presetApi.createPreset(duplicatedData);
+      fetchPresets();
+    } catch (err) {
+      setError(`Failed to duplicate preset: ${err.message}`);
     }
   };
 
-  const handleSavePreset = (preset) => {
-    if (preset.id && presets.find(p => p.id === preset.id)) {
-      // Update existing preset
-      setPresets(prev => prev.map(p => p.id === preset.id ? preset : p));
-    } else {
-      // Create new preset
-      setPresets(prev => [...prev, preset]);
+  const handleDeletePreset = async (presetId) => {
+    if (!window.confirm('Are you sure you want to delete this preset?')) return;
+    
+    try {
+      await presetApi.deletePreset(presetId);
+      if (activePresetId === presetId) {
+        setActivePresetId(null);
+      }
+      fetchPresets();
+    } catch (err) {
+      setError(`Failed to delete preset: ${err.message}`);
+    }
+  };
+
+  const handleSavePreset = async (preset) => {
+    try {
+      if (preset.id) {
+        // Update existing preset
+        await presetApi.updatePreset(preset.id, preset);
+      } else {
+        // Create new preset
+        await presetApi.createPreset(preset);
+      }
+      fetchPresets();
+      handleModalClose();
+    } catch (err) {
+      setError(`Failed to save preset: ${err.message}`);
     }
   };
 
   const handleApplyPreset = async (presetId) => {
-    const preset = presets.find(p => p.id === presetId);
-    if (!preset) return;
+    if (!connected) {
+      setError('Cannot apply preset: VideoHub not connected');
+      return;
+    }
 
     setApplyingPresetId(presetId);
     
     try {
-      // Apply the preset routes
-      onPresetSelect(presetId);
+      const result = await presetApi.applyPreset(presetId);
       
-      // Update preset with last applied time
-      const updatedPreset = {
-        ...preset,
-        lastApplied: new Date().toISOString()
-      };
-      setPresets(prev => prev.map(p => p.id === presetId ? updatedPreset : p));
-      setActivePresetId(presetId);
-      
-      // Simulate some delay for the applying state
-      setTimeout(() => {
-        setApplyingPresetId(null);
-      }, 1000);
-    } catch (error) {
-      console.error('Failed to apply preset:', error);
+      if (result.success) {
+        setActivePresetId(presetId);
+        // Notify parent component to refresh routes
+        if (onPresetSelect) {
+          onPresetSelect(presetId);
+        }
+      } else {
+        setError('Some routes failed to apply');
+      }
+    } catch (err) {
+      setError(`Failed to apply preset: ${err.message}`);
+    } finally {
       setApplyingPresetId(null);
     }
   };
@@ -107,9 +156,36 @@ const PresetView = ({
   };
 
   const handleSaveConfiguration = async () => {
-    // TODO: Implement configuration saving
-    console.log('Saving presets configuration:', presets);
-    alert('Presets configuration saved successfully!');
+    try {
+      const backup = await presetApi.backupPresets();
+      alert(`Backup created successfully: ${backup.filename}`);
+    } catch (err) {
+      setError(`Failed to create backup: ${err.message}`);
+    }
+  };
+
+  const handleExportPreset = async (presetId) => {
+    try {
+      const { blob, filename } = await presetApi.exportPreset(presetId);
+      presetApi.downloadBlob(blob, filename);
+    } catch (err) {
+      setError(`Failed to export preset: ${err.message}`);
+    }
+  };
+
+  const handleImportPreset = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    try {
+      await presetApi.importPreset(file);
+      fetchPresets();
+    } catch (err) {
+      setError(`Failed to import preset: ${err.message}`);
+    }
+    
+    // Reset file input
+    event.target.value = '';
   };
 
   const filteredPresets = presets.filter(preset =>
@@ -120,7 +196,7 @@ const PresetView = ({
   useEffect(() => {
     const currentRouteStr = JSON.stringify(routes);
     const matchingPreset = presets.find(preset => 
-      JSON.stringify(preset.routes) === currentRouteStr
+      JSON.stringify(preset.routing) === currentRouteStr
     );
     setActivePresetId(matchingPreset?.id || null);
   }, [routes, presets]);
@@ -146,28 +222,82 @@ const PresetView = ({
                   Create, edit, and apply routing presets for quick configuration changes.
                 </p>
               </div>
-              <button
-                onClick={handleCreatePreset}
-                className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md font-semibold transition-colors focus:ring-2 focus:ring-blue-500"
-              >
-                <PlusIcon className="w-5 h-5" />
-                <span>Create Preset</span>
-              </button>
+              <div className="flex items-center space-x-2">
+                <input
+                  type="file"
+                  id="import-preset"
+                  accept=".json"
+                  onChange={handleImportPreset}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="import-preset"
+                  className="flex items-center space-x-2 bg-gray-600 hover:bg-gray-700 text-white py-2 px-4 rounded-md font-semibold transition-colors cursor-pointer"
+                >
+                  <ArrowUpTrayIcon className="w-5 h-5" />
+                  <span>Import</span>
+                </label>
+                <button
+                  onClick={handleCreatePreset}
+                  className="flex items-center space-x-2 bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md font-semibold transition-colors focus:ring-2 focus:ring-blue-500"
+                >
+                  <PlusIcon className="w-5 h-5" />
+                  <span>Create Preset</span>
+                </button>
+              </div>
             </div>
 
-            {/* Search */}
-            <div className="mb-6">
+            {/* Error Display */}
+            {error && (
+              <div className="mb-4 bg-red-900/50 border border-red-700 rounded-lg p-4 text-red-300 flex items-center justify-between">
+                <span>{error}</span>
+                <button
+                  onClick={() => setError(null)}
+                  className="text-red-400 hover:text-red-200"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
+            {/* Search and Filter */}
+            <div className="mb-6 flex items-center space-x-4">
               <input
                 type="text"
                 placeholder="Search presets..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full max-w-md bg-slate-700 border border-slate-600 rounded-md px-4 py-2 text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="flex-1 max-w-md bg-slate-700 border border-slate-600 rounded-md px-4 py-2 text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
+              {categories.length > 0 && (
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => {
+                    setSelectedCategory(e.target.value);
+                    fetchPresets();
+                  }}
+                  className="bg-slate-700 border border-slate-600 rounded-md px-4 py-2 text-white focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">All Categories</option>
+                  {categories.map(cat => (
+                    <option key={cat} value={cat}>{cat}</option>
+                  ))}
+                </select>
+              )}
             </div>
 
             {/* Presets Grid */}
-            {filteredPresets.length > 0 ? (
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="inline-flex items-center space-x-2 text-slate-400">
+                  <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  <span>Loading presets...</span>
+                </div>
+              </div>
+            ) : filteredPresets.length > 0 ? (
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {filteredPresets.map(preset => (
                   <PresetCard
@@ -177,6 +307,7 @@ const PresetView = ({
                     onEdit={handleEditPreset}
                     onDelete={handleDeletePreset}
                     onDuplicate={handleDuplicatePreset}
+                    onExport={handleExportPreset}
                     isApplying={applyingPresetId === preset.id}
                     isActive={activePresetId === preset.id}
                   />

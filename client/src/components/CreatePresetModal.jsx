@@ -16,6 +16,9 @@ const CreatePresetModal = ({
   editingPreset = null // null for new preset, preset object for editing
 }) => {
   const [presetName, setPresetName] = useState('');
+  const [presetDescription, setPresetDescription] = useState('');
+  const [presetCategory, setPresetCategory] = useState('general');
+  const [presetTags, setPresetTags] = useState('');
   const [selectedRoutes, setSelectedRoutes] = useState({});
   const [searchTerm, setSearchTerm] = useState('');
   const [showRouteBuilder, setShowRouteBuilder] = useState(false);
@@ -29,10 +32,16 @@ const CreatePresetModal = ({
       if (editingPreset) {
         // Editing existing preset
         setPresetName(editingPreset.name);
-        setSelectedRoutes(editingPreset.routes || {});
+        setPresetDescription(editingPreset.description || '');
+        setPresetCategory(editingPreset.category || 'general');
+        setPresetTags(Array.isArray(editingPreset.tags) ? editingPreset.tags.join(', ') : '');
+        setSelectedRoutes(editingPreset.routing || {});
       } else {
         // Creating new preset
         setPresetName('');
+        setPresetDescription('');
+        setPresetCategory('general');
+        setPresetTags('');
         setSelectedRoutes({});
       }
       setSearchTerm('');
@@ -59,16 +68,18 @@ const CreatePresetModal = ({
       return;
     }
 
+    const tags = presetTags.split(',').map(tag => tag.trim()).filter(tag => tag.length > 0);
+
     const preset = {
-      id: editingPreset?.id || Date.now().toString(),
+      id: editingPreset?.id,
       name: presetName.trim(),
-      routes: selectedRoutes,
-      createdAt: editingPreset?.createdAt || new Date().toISOString(),
-      lastModified: new Date().toISOString()
+      description: presetDescription.trim(),
+      category: presetCategory,
+      tags: tags,
+      routing: selectedRoutes
     };
 
     onSave(preset);
-    onClose();
   };
 
   const handleAddFromCurrent = () => {
@@ -195,18 +206,65 @@ const CreatePresetModal = ({
           </button>
         </div>
 
-        {/* Preset Name */}
-        <div className="mb-6">
-          <label className="block text-sm font-medium text-slate-300 mb-2">
-            Preset Name
-          </label>
-          <input
-            type="text"
-            value={presetName}
-            onChange={(e) => setPresetName(e.target.value)}
-            placeholder="Enter preset name..."
-            className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          />
+        {/* Preset Details */}
+        <div className="mb-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Preset Name *
+            </label>
+            <input
+              type="text"
+              value={presetName}
+              onChange={(e) => setPresetName(e.target.value)}
+              placeholder="Enter preset name..."
+              className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-slate-300 mb-2">
+              Description
+            </label>
+            <input
+              type="text"
+              value={presetDescription}
+              onChange={(e) => setPresetDescription(e.target.value)}
+              placeholder="Enter a description for this preset..."
+              className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Category
+              </label>
+              <select
+                value={presetCategory}
+                onChange={(e) => setPresetCategory(e.target.value)}
+                className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="general">General</option>
+                <option value="live">Live Events</option>
+                <option value="production">Production</option>
+                <option value="test">Test</option>
+                <option value="backup">Backup</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-slate-300 mb-2">
+                Tags
+              </label>
+              <input
+                type="text"
+                value={presetTags}
+                onChange={(e) => setPresetTags(e.target.value)}
+                placeholder="tag1, tag2, tag3..."
+                className="w-full bg-slate-700 border border-slate-600 rounded-md px-3 py-2 text-white placeholder-slate-400 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              />
+            </div>
+          </div>
         </div>
 
         {/* Route Management */}
