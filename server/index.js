@@ -8,6 +8,9 @@ const path = require('path');
 const VideoHub = require('./videohub');
 const MockVideoHub = require('./mock-videohub');
 const config = require('./config');
+const sequelize = require('./database');
+const MigrationRunner = require('./database/migrate');
+const presetRoutes = require('./routes/presets');
 
 const app = express();
 
@@ -45,9 +48,15 @@ const wss = new WebSocket.Server({ server });
 // Initialize VideoHub instance
 const videohub = new VideoHub(config.videohub.host, config.videohub.port);
 
+// Make videoHub available to routes
+app.set('videoHub', videohub);
+
 // Middleware
 app.use(cors());
 app.use(express.json());
+
+// API Routes
+app.use('/api/presets', presetRoutes);
 
 // API Endpoints for VideoHub connection management
 app.post('/api/connect', (req, res) => {
@@ -236,10 +245,35 @@ videohub.on('labelChange', (labelType, index, label) => {
   });
 });
 
-// Start server
-const PORT = process.env.PORT || 3001;
-server.listen(PORT, () => {
-  console.log(`Server running on ${serverProtocol}://localhost:${PORT}`);
-  console.log(`WebSocket available at ${serverProtocol === 'https' ? 'wss' : 'ws'}://localhost:${PORT}`);
-  console.log('VideoHub connection not established. Use the setup page to connect.');
-});
+// Initialize database and start server
+async function startServer() {
+  try {
+    // Create data directory if it doesn't exist
+    const dataDir = path.join(__dirname, 'data');
+    if (!fs.existsSync(dataDir)) {
+      fs.mkdirSync(dataDir, { recursive: true });
+    }
+
+    // Run database migrations
+    console.log('Running database migrations...');
+    const migrationRunner = new MigrationRunner();
+    await migrationRunner.run();
+
+    // Sync database
+    await sequelize.authenticate();
+    console.log('Database connection established successfully.');
+
+    // Start server
+    const PORT = process.env.PORT || 3001;
+    server.listen(PORT, () => {
+      console.log(`Server running on ${serverProtocol}://localhost:${PORT}`);
+      console.log(`WebSocket available at ${serverProtocol === 'https' ? 'wss' : 'ws'}://localhost:${PORT}`);
+      console.log('VideoHub connection not established. Use the setup page to connect.');
+    });
+  } catch (error) {
+    console.error('Failed to start server:', error);
+    process.exit(1);
+  }
+}
+
+startServer();
